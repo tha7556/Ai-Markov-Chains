@@ -14,7 +14,7 @@ public class Dictionary {
 				String s = scanner.nextLine();
 				s = s.trim();
 				if(!s.contains("-") && !s.contains("'") && s.length() > 1)
-					words.add(s);
+					words.add(s.toLowerCase());
 			}
 			scanner.close();
 		} catch (FileNotFoundException e) {
@@ -33,6 +33,9 @@ public class Dictionary {
 				string +=words.get(i)+"  ";
 		}
 		return string;
+	}
+	public Boolean contains(String word) {
+		return words.contains(word.toLowerCase());
 	}
 	public static void main(String[] args) {
 		Dictionary dict = new Dictionary("E:\\ComputerScience\\Workspace\\Ai Project2\\Dictionary.txt");

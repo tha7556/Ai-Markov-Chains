@@ -7,7 +7,7 @@ public class MarkovChain {
 	private Map<String, Integer> table;
 	private Dictionary dict;
 	private int average, min, max;
-	private final String NIL = "\\0";
+	private final String NIL = "\0";
 	public final String[] CHARS = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z",NIL};
 	public MarkovChain(Dictionary dict) {
 		this.dict = dict;
@@ -39,7 +39,7 @@ public class MarkovChain {
 		Random r = new Random();
 		ArrayList<String> string = new ArrayList<String>();
 		string.add(NIL);
-		while((!string.get(string.size()-1).equals(NIL) || string.size() <= 1) && string.size() <= 2+maxLength) {
+		while((!string.get(string.size()-1).equals(NIL) || string.size() <= 1)) { //&& string.size() <= 2+maxLength) {
 			ArrayList<String> letters = new ArrayList<String>();
 			ArrayList<Integer> values = new ArrayList<Integer>();
 			int maxTarget = getMaxValue()+5;
@@ -67,7 +67,6 @@ public class MarkovChain {
 		for(String s : string)
 			if(!s.equals(NIL))
 				result += s;
-		System.out.println(result);
 		return result;
 	}
 	public int getAverageValue() {
@@ -120,8 +119,20 @@ public class MarkovChain {
 		return table;
 	}
 	public static void main(String[] args) {
-		MarkovChain m = new MarkovChain(new Dictionary("E:\\ComputerScience\\Workspace\\Ai Project2\\SmallDictionary.txt"));
-		for(int i = 0; i < 500; i++)
-			m.createWord(8);
+		Dictionary dict = new Dictionary("E:\\ComputerScience\\Github\\Ai-Markov-Chains\\MedDictionary.txt");
+		ArrayList<String> result = new ArrayList<String>(dict.getWords().size());
+		MarkovChain m = new MarkovChain(dict);
+		int i = 0;
+		while(result.size() < dict.getWords().size() || 1==1) {
+			i++;
+			String word = m.createWord(79999);
+			System.out.println(word);
+			if(dict.contains(word) && !result.contains(word)) {
+				result.add(word);
+				//System.out.println(word + " " + i);
+			}
+			//System.out.println(word+"\t\t\t"+result.size()+"vs"+dict.getWords().size());
+		}
 	}
+	//TODO: Fix Randomization? Usually only gets ~4 from original dictionary
 }
