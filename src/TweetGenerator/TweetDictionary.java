@@ -25,16 +25,16 @@ public class TweetDictionary {
 			for(; current < s.length(); current++) {
 				if(!Character.isLetter(s.charAt(current)) && !(s.charAt(current) == '\'')) { //current point is a symbol
 					if(start != current) {
-						temp.add(s.substring(start,current));
+						temp.add(s.substring(start,current).toLowerCase());
 						start = current;
 					}
 					else {
-						temp.add(s.substring(start, current+1));
+						temp.add(s.substring(start, current+1).toLowerCase());
 						start++;
 					}
 				}
 			}
-			temp.add(s.substring(start,current));
+			temp.add(s.substring(start,current).toLowerCase());
 			result.addAll(temp);
 		}
 		return result;
@@ -54,6 +54,7 @@ public class TweetDictionary {
 		return text.trim();
 	}
 	public static ArrayList<String> getAllTweetsFrom(String twitterHandle) {
+		System.out.println("Gathering tweets from: "+twitterHandle+"...");
 		ArrayList<String> result = new ArrayList<String>();
 		ConfigurationBuilder cb = new ConfigurationBuilder();
 		cb.setOAuthConsumerKey("NkHd3jqeKSSf4zYXvlCmxSvQh");

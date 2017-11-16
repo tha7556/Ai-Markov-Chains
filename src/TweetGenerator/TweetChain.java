@@ -1,32 +1,32 @@
 package TweetGenerator;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 public class TweetChain {
-	private final String NIL = "\0";
+	private final static String NIL = "\0";
 	private Map<String, Integer> table;
 	private TweetDictionary dictionary;
 	private ArrayList<String> knownWords;
-	private final String[] startSymbols = new String[]{"#","\"","\'","@","$","(","*","%"};
-	private final String[] endSymbols = new String[]{",",".","\"","\'","!",")","*","?"};
+	private final static String[] startSymbols = new String[]{"#","\"","\'","@","$","(","*","%"};
+	private final static String[] endSymbols = new String[]{",",".","\"","\'","!",")","*","?"};
 	private int max, min;
 	public TweetChain(TweetDictionary dict) {
 		this.dictionary = dict;
 		this.knownWords = new ArrayList<String>();
 		knownWords.add(NIL);
 		this.table = new HashMap<String,Integer>();
-		
 		max = -1;
 		min = Integer.MAX_VALUE;
-		
-		putAllTweetsInTable();
-		getMax();
-		getMin();
-		
-		
+		System.out.println("Putting tweets into the Table...");
+		putAllTweetsInTable();		
+		System.out.println("Now ready to write tweets in the style of: "+dict.getTwitterHandle()+"\n");
 	}
 	public String writeTweet() {
 		ArrayList<String> tweet = new ArrayList<String>();
@@ -45,7 +45,7 @@ public class TweetChain {
 				}
 			}
 			Random rand = new Random();
-			int target = rand.nextInt((getMax() - getMin()) + 1) + getMin(); //Random num between min and max
+			int target = rand.nextInt((max - min) + 1) + min; //Random num between min and max
 			int index = 0, value = 0;
 			for(; value < target; index++) {
 				if(index >= words.size())
@@ -65,7 +65,7 @@ public class TweetChain {
 			else if(!tweet.get(i).equals(NIL))
 				result += tweet.get(i) +" ";
 		}
-		return result.trim();
+		return TweetChain.formatResult(result.trim());
 	}
 	public void putTweetInTable(String tweet) {
 		ArrayList<String> words = dictionary.getWordsFromTweet(tweet);
@@ -114,42 +114,87 @@ public class TweetChain {
 			return table.get(transition);
 		}
 	}
-	public int getMax() {
-		if(max == -1) {
-			System.out.println("Calculating max...with: "+ knownWords.size()+" words");
-			for(String word1 : knownWords) {
-				for(String word2 : knownWords) {
-					int count = getCountForTransition(word1+word2);
-					if(count > max) {
-						max = count;
-					}
-				}
-			}
-		}
-		return max;
+	public Map<String,Integer> getTable() {
+		return table;
 	}
-	public int getMin() {
-		if(min == Integer.MAX_VALUE) {
-			System.out.println("Calculating max...with: "+ knownWords.size()+" words");
-			for(String word1 : knownWords) {
-				for(String word2 : knownWords) {
-					int count = getCountForTransition(word1+word2);
-					if(count < min) {
-						min = count;
-					}
-				}
+	public ArrayList<String> getKnownWords() {
+		return knownWords;
+	}
+	public static String formatResult(String tweet) {
+		String[] words = tweet.split(" ");
+		String result = "";
+		for(int i = 0; i < words.length; i++) {
+			if(words[i].equals("i"))
+				words[i] = "I";
+			else if(words[i].indexOf("i\'") != -1)
+				words[i] = "I" + words[i].substring(1);
+			else if(words[i].equals("america"))
+				words[i] = "America";
+			
+			if(isIn(words[i],startSymbols)) {
+				result += words[i];
+			}
+			else if(i < words.length-1 && isIn(words[i+1],endSymbols)) {
+				result += words[i];
+			}
+			else {
+				result += words[i] + " ";
 			}
 		}
-		return min;
+		return result;
+	}
+	public static boolean isIn(String string, String[] arr) {
+		for(String s : arr) 
+			if(string.equals(s))
+				return true;
+			
+		return false;
+	}
+	public static void printTable(TweetChain chain) {
+		File file = new File ("chain.csv"); 
+		FileWriter fWriter = null;
+		try {
+			fWriter = new FileWriter (file);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+		PrintWriter pWriter = new PrintWriter (fWriter);
+		
+		pWriter.print(",");
+		for(String s : chain.getKnownWords()) {
+			String s1 = s;
+			if(s.equals(NIL))
+				s1 = "NIL";
+			s1 = "=\""+s1+"\"";
+			pWriter.print(s1+",");
+		}
+		pWriter.println();
+		for(String from : chain.getKnownWords()) {
+			String f = from;
+			if(from.equals(NIL))
+				f = "NIL";
+			f = "=\""+f+"\"";
+			pWriter.print(f+",");
+			for(String to : chain.getKnownWords()) {
+				pWriter.print(chain.getCountForTransition(from+to)+",");
+			}
+			pWriter.println();
+		}
+		try {
+			fWriter.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		pWriter.close();
 	}
 	public static void main(String[] args) {
 		//Nifty tweeters: DylDTM manacurves ColIegeStudent abominable_andy
 		TweetDictionary dict = new TweetDictionary("DylDTM");
 		TweetChain chain = new TweetChain(dict);
-		System.out.println("Starting to create tweets");
 		for(int i = 0; i < 150; i++)
 			System.out.println(chain.writeTweet());
-		
+		TweetChain.printTable(chain);
 	}
 	
 }
