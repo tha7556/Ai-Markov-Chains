@@ -193,7 +193,7 @@ public class TweetChain {
 		TweetDictionary dict = new TweetDictionary("DylDTM");
 		TweetChain chain = new TweetChain(dict);
 		for(int i = 0; i < 150; i++)
-			System.out.println(chain.writeTweet());
+			System.out.println(chain.writeTweet() +"\n");
 		TweetChain.printTable(chain);
 	}
 	
