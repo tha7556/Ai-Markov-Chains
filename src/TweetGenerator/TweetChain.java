@@ -6,24 +6,27 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class TweetChain {
-	private final static String NIL = "\0";
-	private Map<String, Integer> table;
+	private final static String NIL = "\\0";
+	private Map<String, Map<String, Integer>> table;
+	private Map<String,Integer> startWords;
 	private TweetDictionary dictionary;
-	private ArrayList<String> knownWords;
 	private final static String[] startSymbols = new String[]{"#","\"","\'","@","$","(","*","%"};
 	private final static String[] endSymbols = new String[]{",",".","\"","\'","!",")","*","?"};
-	private int max, min;
+	private int max, min, startMax, startMin;
 	public TweetChain(TweetDictionary dict) {
 		this.dictionary = dict;
-		this.knownWords = new ArrayList<String>();
-		knownWords.add(NIL);
-		this.table = new HashMap<String,Integer>();
+		this.table = new HashMap<String,Map<String,Integer>>();
+		this.startWords = new HashMap<String,Integer>();
 		max = -1;
 		min = Integer.MAX_VALUE;
+		startMax = -1;
+		startMin = Integer.MAX_VALUE;
 		System.out.println("Putting tweets into the Table...");
 		putAllTweetsInTable();		
 		System.out.println("Now ready to write tweets in the style of: "+dict.getTwitterHandle()+"\n");
@@ -32,17 +35,18 @@ public class TweetChain {
 		ArrayList<String> tweet = new ArrayList<String>();
 		tweet.add(NIL);
 		int size = 0;
+		String lastWord = getStartWord();
+		String lastTransition = NIL + lastWord;
+		size += lastWord.length();
+		tweet.add(lastWord);
+		
 		while((size <= 1 ||  !tweet.get(tweet.size()-1).equals(NIL)) && size < 280) {
 			ArrayList<String> words = new ArrayList<String>();
 			ArrayList<Integer> values = new ArrayList<Integer>();
-			String lastWord = tweet.get(tweet.size()-1);
-			//System.out.println("last word: "+lastWord);
-			for(String word : knownWords) {
-				//System.out.println("count for: "+lastWord+"+"+word+" = "+getCountForTransition(lastWord+word));
-				if(getCountForTransition(lastWord+word) > 0) {
+			Set<String> keys = getKeysForTransition(lastTransition);
+			for(String word : keys) {
 					words.add(word);
-					values.add(getCountForTransition(lastWord+word));
-				}
+					values.add(getCountForWordAtTransition(word, lastTransition));
 			}
 			Random rand = new Random();
 			int target = rand.nextInt((max - min) + 1) + min; //Random num between min and max
@@ -57,6 +61,8 @@ public class TweetChain {
 				index = words.size() - 1;
 			tweet.add(words.get(index));
 			size += words.get(index).length();
+			lastTransition = lastWord + words.get(index);
+			lastWord = words.get(index);
 		}
 		String result = "";
 		for(int i = 1; i < tweet.size(); i++) {
@@ -67,58 +73,96 @@ public class TweetChain {
 		}
 		return TweetChain.formatResult(result.trim());
 	}
+	private String getStartWord() {
+		Random rand = new Random();
+		int target = rand.nextInt((max - min) + 1) + min; //Random num between min and max
+		int index = 0, value = 0;
+		ArrayList<String> words = new ArrayList<String>();
+		ArrayList<Integer> values = new ArrayList<Integer>();
+		for(String word : startWords.keySet()) {
+				words.add(word);
+				values.add(startWords.get(word));
+		}
+		
+		for(; value < target; index++) {
+			if(index >= words.size())
+				index = 0;
+			value += values.get(index);
+		}
+		index--;
+		if(index < 0)
+			index = words.size() - 1;
+		return words.get(index);
+	}
 	public void putTweetInTable(String tweet) {
 		ArrayList<String> words = dictionary.getWordsFromTweet(tweet);
+		String lastTransition = NIL;
 		for(int i = 0; i < words.size()+1; i++) {
-			if(i < words.size() && !knownWords.contains(words.get(i))) { //new word
-				knownWords.add(words.get(i).toLowerCase());
-			}
-			String transition = "";
-			if(i == 0) { //first word
-				transition = NIL+words.get(i).toLowerCase();
+			
+			if(lastTransition.equals(NIL)) { //first word
+				lastTransition = NIL+words.get(i);
+				int value = 1;
+				if(startWords.containsKey(words.get(i))) 
+					value = startWords.get(words.get(i))+1;
+				startWords.put(words.get(i), value);
+				
+				if(startWords.get(words.get(i)) > startMax)
+					startMax = startWords.get(words.get(i));
+				if(startWords.get(words.get(i)) < startMin)
+					startMin = startWords.get(words.get(i));
 			}
 			else if(i == words.size()) { //last word
-				transition = words.get(i-1).toLowerCase()+NIL;
+				put(lastTransition,NIL);
 			}
 			else { //middle words
-				transition = words.get(i-1).toLowerCase()+words.get(i).toLowerCase();
+				put(lastTransition,words.get(i));
+				lastTransition = words.get(i-1)+words.get(i);
 			}
-			transition = transition.toLowerCase();
-			if(getCountForTransition(transition) == 0) { //not in table
-				table.put(transition, 1);
-				if(1 > max)
-					max = 1;
-				if(1 < min)
-					min = 1;
-			}
-			else { //already in table
-				int num = table.get(transition);
-				table.put(transition, num+1);
-				if((num+1) > max)
-					max = num+1;
-				if((num+1) < min)
-					min = num+1;
-			}
+				
 		}
 		
 	}
-	public void putAllTweetsInTable() {
+	private Set<String> getKeysForTransition(String transition) {
+		if(table.containsKey(transition))
+			return table.get(transition).keySet();
+		Set<String> newSet = new HashSet<String>();
+		newSet.add(NIL);
+		return newSet;
+	}
+	private void put(String transition, String word) {
+		int value = 1;
+		if(table.containsKey(transition)) { //transition already in table
+			if(table.get(transition).containsKey(word)) { //word already associated with transition
+				value = table.get(transition).get(word) + 1;
+				table.get(transition).put(word, value);
+			}
+			else { //transition not associated with word
+				table.get(transition).put(word, value);
+			}
+		}
+		else { //transition not in table
+			Map<String, Integer> map = new HashMap<String,Integer>();
+			map.put(word, value);
+			table.put(transition, map);
+		}
+		if(value > max) 
+			max = value;
+		if(value < min) 
+			min = value;
+	}
+	private void putAllTweetsInTable() {
 		for(String tweet : dictionary.getTweets()) {
 			putTweetInTable(tweet);
 		}
 	}
-	public int getCountForTransition(String transition) {
-		if(!table.containsKey(transition)) //transition not in table yet
+	public int getCountForWordAtTransition(String word, String transition) {
+		if(table.containsKey(transition) && table.get(transition).containsKey(word))
+			return table.get(transition).get(word);
+		else 
 			return 0;
-		else {
-			return table.get(transition);
-		}
 	}
-	public Map<String,Integer> getTable() {
+	public Map<String,Map<String,Integer>> getTable() {
 		return table;
-	}
-	public ArrayList<String> getKnownWords() {
-		return knownWords;
 	}
 	public static String formatResult(String tweet) {
 		String[] words = tweet.split(" ");
@@ -160,23 +204,26 @@ public class TweetChain {
 		} 
 		PrintWriter pWriter = new PrintWriter (fWriter);
 		
-		pWriter.print(",");
-		for(String s : chain.getKnownWords()) {
-			String s1 = s;
-			if(s.equals(NIL))
-				s1 = "NIL";
-			s1 = "=\""+s1+"\"";
-			pWriter.print(s1+",");
-		}
-		pWriter.println();
-		for(String from : chain.getKnownWords()) {
+		
+		for(String from : chain.getTable().keySet()) {
 			String f = from;
 			if(from.equals(NIL))
 				f = "NIL";
 			f = "=\""+f+"\"";
+			pWriter.print(",");
+			pWriter.println();
+			for(String to : chain.getTable().get(f).keySet()) {
+				String t = to;
+				if(to.equals(NIL))
+					t = "NIL";
+				t = "=\""+f+"\"";
+				pWriter.print(t+",");
+			}
+			pWriter.println();
+			
 			pWriter.print(f+",");
-			for(String to : chain.getKnownWords()) {
-				pWriter.print(chain.getCountForTransition(from+to)+",");
+			for(String to : chain.getTable().get(f).keySet()) {
+				pWriter.print(chain.getCountForWordAtTransition(to,from)+",");
 			}
 			pWriter.println();
 		}
@@ -192,8 +239,9 @@ public class TweetChain {
 		//Nifty tweeters: DylDTM manacurves ColIegeStudent abominable_andy
 		TweetDictionary dict = new TweetDictionary("DylDTM");
 		TweetChain chain = new TweetChain(dict);
-		for(int i = 0; i < 150; i++)
+		for(int i = 0; i < 1000; i++)
 			System.out.println(chain.writeTweet());
+		System.out.println("Done Writing Tweets!");
 		TweetChain.printTable(chain);
 	}
 	
