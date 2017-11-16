@@ -25,11 +25,11 @@ public class TweetDictionary {
 			for(; current < s.length(); current++) {
 				if(!Character.isLetter(s.charAt(current)) && !(s.charAt(current) == '\'')) { //current point is a symbol
 					if(start != current) {
-						temp.add(s.substring(start,current).toLowerCase());
+						temp.add(s.substring(start,current).toLowerCase().trim());
 						start = current;
 					}
 					else {
-						temp.add(s.substring(start, current+1).toLowerCase());
+						temp.add(s.substring(start, current+1).toLowerCase().trim());
 						start++;
 					}
 				}

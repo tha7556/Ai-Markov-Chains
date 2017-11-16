@@ -16,7 +16,7 @@ public class TweetChain {
 	private Map<String, Map<String, Integer>> table;
 	private Map<String,Integer> startWords;
 	private TweetDictionary dictionary;
-	private final static String[] startSymbols = new String[]{"#","\"","\'","@","$","(","*","%"};
+	private final static String[] startSymbols = new String[]{"#","\"","\'","@","("};
 	private final static String[] endSymbols = new String[]{",",".","\"","\'","!",")","*","?"};
 	private int max, min, startMax, startMin;
 	public TweetChain(TweetDictionary dict) {
@@ -51,18 +51,22 @@ public class TweetChain {
 			Random rand = new Random();
 			int target = rand.nextInt((max - min) + 1) + min; //Random num between min and max
 			int index = 0, value = 0;
-			for(; value < target; index++) {
-				if(index >= words.size())
-					index = 0;
-				value += values.get(index);
+			String nextWord = NIL;
+			if(!words.get(0).equals(NIL)) {
+				for(; value < target; index++) {
+					if(index >= words.size())
+						index = 0;
+					value += values.get(index);
+				}
+				index--;
+				if(index < 0)
+					index = words.size() - 1;
+				nextWord = words.get(index);
 			}
-			index--;
-			if(index < 0)
-				index = words.size() - 1;
-			tweet.add(words.get(index));
-			size += words.get(index).length();
-			lastTransition = lastWord + words.get(index);
-			lastWord = words.get(index);
+			tweet.add(nextWord);
+			size += nextWord.length();
+			lastTransition = lastWord + nextWord;
+			lastWord = nextWord;
 		}
 		String result = "";
 		for(int i = 1; i < tweet.size(); i++) {
@@ -206,42 +210,39 @@ public class TweetChain {
 		
 		
 		for(String from : chain.getTable().keySet()) {
-			String f = from;
+			String f = from.trim();
 			if(from.equals(NIL))
 				f = "NIL";
-			f = "=\""+f+"\"";
-			pWriter.print(",");
-			pWriter.println();
-			for(String to : chain.getTable().get(f).keySet()) {
-				String t = to;
+			pWriter.print(" ");
+			for(String to : chain.getTable().get(from).keySet()) {
+				String t = to.trim();
 				if(to.equals(NIL))
 					t = "NIL";
-				t = "=\""+f+"\"";
-				pWriter.print(t+",");
+				pWriter.print(t+" ");
 			}
 			pWriter.println();
 			
-			pWriter.print(f+",");
-			for(String to : chain.getTable().get(f).keySet()) {
-				pWriter.print(chain.getCountForWordAtTransition(to,from)+",");
+			pWriter.print(f+" ");
+			for(String to : chain.getTable().get(from).keySet()) {
+				pWriter.print(chain.getCountForWordAtTransition(to,from)+" ");
 			}
-			pWriter.println();
+			pWriter.println("\n");
 		}
 		try {
 			fWriter.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		pWriter.close();
 	}
 	public static void main(String[] args) {
 		//Nifty tweeters: DylDTM manacurves ColIegeStudent abominable_andy
-		TweetDictionary dict = new TweetDictionary("DylDTM");
+		TweetDictionary dict = new TweetDictionary("UNCWilmington");
 		TweetChain chain = new TweetChain(dict);
-		for(int i = 0; i < 1000; i++)
-			System.out.println(chain.writeTweet());
-		System.out.println("Done Writing Tweets!");
+		for(int i = 0; i < 1000; i++) {
+			System.out.println(chain.writeTweet() +"\n");
+		}
+		System.out.println("\nDone Writing Tweets!");
 		TweetChain.printTable(chain);
 	}
 	
