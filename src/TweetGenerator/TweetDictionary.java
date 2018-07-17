@@ -23,18 +23,18 @@ public class TweetDictionary {
 			ArrayList<String> temp = new ArrayList<String>();
 			int start = 0, current = 0;
 			for(; current < s.length(); current++) {
-				if(!Character.isLetter(s.charAt(current)) && !(s.charAt(current) == '\'')) { //current point is a symbol
+				if(!Character.isLetter(s.charAt(current)) && !Character.isDigit(s.charAt(current)) && !(s.charAt(current) == '\'')) { //current point is a symbol
 					if(start != current) {
-						temp.add(s.substring(start,current).toLowerCase());
+						temp.add(s.substring(start,current));
 						start = current;
 					}
 					else {
-						temp.add(s.substring(start, current+1).toLowerCase());
+						temp.add(s.substring(start, current+1));
 						start++;
 					}
 				}
 			}
-			temp.add(s.substring(start,current).toLowerCase());
+			temp.add(s.substring(start,current));
 			result.addAll(temp);
 		}
 		return result;
@@ -61,6 +61,7 @@ public class TweetDictionary {
 	    cb.setOAuthConsumerSecret("bflKHYWEHVxYz0kUtIcLT10o2CfsEMbeP1Scqv9A4A2s0PeHTb");
 	    cb.setOAuthAccessToken("928369473295437824-Yre5mtZWf73r0wGdWIzrpDdEX310GJU");
 	    cb.setOAuthAccessTokenSecret("LK4sf8uvPY2NCKYTMTyySglVOqdRyY5HHCShMhp3X4Q7V");
+	    cb.setIncludeMyRetweetEnabled(false);
 	    
 	    Twitter twitter = new TwitterFactory(cb.build()).getInstance();
 		int pageno = 1;		
@@ -82,6 +83,7 @@ public class TweetDictionary {
 				e.printStackTrace();
 			}
 		}
+		System.out.println("Gathered: "+result.size()+" tweets");
 		return result;
 	}
 	public static void main(String[] args) {

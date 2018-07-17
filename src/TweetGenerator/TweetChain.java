@@ -11,6 +11,7 @@ import java.util.Random;
 
 public class TweetChain {
 	private final static String NIL = "\0";
+	private static Random rand = new Random();
 	private Map<String, Integer> table;
 	private TweetDictionary dictionary;
 	private ArrayList<String> knownWords;
@@ -24,9 +25,7 @@ public class TweetChain {
 		this.table = new HashMap<String,Integer>();
 		max = -1;
 		min = Integer.MAX_VALUE;
-		System.out.println("Putting tweets into the Table...");
 		putAllTweetsInTable();		
-		System.out.println("Now ready to write tweets in the style of: "+dict.getTwitterHandle()+"\n");
 	}
 	public String writeTweet() {
 		ArrayList<String> tweet = new ArrayList<String>();
@@ -36,15 +35,13 @@ public class TweetChain {
 			ArrayList<String> words = new ArrayList<String>();
 			ArrayList<Integer> values = new ArrayList<Integer>();
 			String lastWord = tweet.get(tweet.size()-1);
-			//System.out.println("last word: "+lastWord);
 			for(String word : knownWords) {
-				//System.out.println("count for: "+lastWord+"+"+word+" = "+getCountForTransition(lastWord+word));
-				if(getCountForTransition(lastWord+word) > 0) {
+				int count = getCountForTransition(lastWord+word);
+				if(count > 0) {
 					words.add(word);
-					values.add(getCountForTransition(lastWord+word));
+					values.add(count);
 				}
 			}
-			Random rand = new Random();
 			int target = rand.nextInt((max - min) + 1) + min; //Random num between min and max
 			int index = 0, value = 0;
 			for(; value < target; index++) {
@@ -58,32 +55,25 @@ public class TweetChain {
 			tweet.add(words.get(index));
 			size += words.get(index).length();
 		}
-		String result = "";
-		for(int i = 1; i < tweet.size(); i++) {
-			if(i == 1 && tweet.get(i).length() > 1)
-				result += tweet.get(i).substring(0,1).toUpperCase() + tweet.get(i).substring(1)+" ";
-			else if(!tweet.get(i).equals(NIL))
-				result += tweet.get(i) +" ";
-		}
-		return TweetChain.formatResult(result.trim());
+		
+		return TweetChain.formatResult(tweet);
 	}
 	public void putTweetInTable(String tweet) {
 		ArrayList<String> words = dictionary.getWordsFromTweet(tweet);
 		for(int i = 0; i < words.size()+1; i++) {
 			if(i < words.size() && !knownWords.contains(words.get(i))) { //new word
-				knownWords.add(words.get(i).toLowerCase());
+				knownWords.add(words.get(i));
 			}
 			String transition = "";
 			if(i == 0) { //first word
-				transition = NIL+words.get(i).toLowerCase();
+				transition = NIL+words.get(i);
 			}
 			else if(i == words.size()) { //last word
-				transition = words.get(i-1).toLowerCase()+NIL;
+				transition = words.get(i-1)+NIL;
 			}
 			else { //middle words
-				transition = words.get(i-1).toLowerCase()+words.get(i).toLowerCase();
+				transition = words.get(i-1)+words.get(i);
 			}
-			transition = transition.toLowerCase();
 			if(getCountForTransition(transition) == 0) { //not in table
 				table.put(transition, 1);
 				if(1 > max)
@@ -104,7 +94,7 @@ public class TweetChain {
 	}
 	public void putAllTweetsInTable() {
 		for(String tweet : dictionary.getTweets()) {
-			putTweetInTable(tweet);
+			putTweetInTable(tweet.toLowerCase());
 		}
 	}
 	public int getCountForTransition(String transition) {
@@ -120,26 +110,29 @@ public class TweetChain {
 	public ArrayList<String> getKnownWords() {
 		return knownWords;
 	}
-	public static String formatResult(String tweet) {
-		String[] words = tweet.split(" ");
-		String result = "";
-		for(int i = 0; i < words.length; i++) {
-			if(words[i].equals("i"))
-				words[i] = "I";
-			else if(words[i].indexOf("i\'") != -1)
-				words[i] = "I" + words[i].substring(1);
-			else if(words[i].equals("america"))
-				words[i] = "America";
+	public static String formatResult(ArrayList<String> words) {
+		StringBuilder builder = new StringBuilder();
+		for(int i = 0; i < words.size(); i++) {
+			if(words.get(i).equals("i"))
+				words.set(i,"I");
+			else if(words.get(i).indexOf("i\'") != -1)
+				words.set(i, "I" + words.get(i).substring(1));
+			else if(words.get(i).equals("america"))
+				words.set(i, "America");
 			
-			if(isIn(words[i],startSymbols)) {
-				result += words[i];
+			if(isIn(words.get(i),startSymbols)) {
+				builder.append(words.get(i));
 			}
-			else if(i < words.length-1 && isIn(words[i+1],endSymbols)) {
-				result += words[i];
+			else if(i < words.size()-1 && isIn(words.get(i+1),endSymbols)) {
+				builder.append(words.get(i));
 			}
 			else {
-				result += words[i] + " ";
+				builder.append(words.get(i)).append(" ");
 			}
+		}
+		String result = builder.toString().trim();
+		if(result.length() > 0) {
+			result = Character.toUpperCase(result.charAt(0))+result.substring(1);
 		}
 		return result;
 	}
@@ -190,11 +183,11 @@ public class TweetChain {
 	}
 	public static void main(String[] args) {
 		//Nifty tweeters: DylDTM manacurves ColIegeStudent abominable_andy
-		TweetDictionary dict = new TweetDictionary("DylDTM");
+		TweetDictionary dict = new TweetDictionary("realDonaldTrump");
 		TweetChain chain = new TweetChain(dict);
 		for(int i = 0; i < 150; i++)
 			System.out.println(chain.writeTweet() +"\n");
-		TweetChain.printTable(chain);
+		//TweetChain.printTable(chain);
 	}
 	
 }
