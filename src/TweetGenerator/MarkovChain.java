@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-public class TweetChain {
+public class MarkovChain {
 	private Map<String, Map<String, Integer>> table;
 	private Map<String,Integer> startWords;
 	private final static String NIL = "\0";
@@ -20,7 +20,7 @@ public class TweetChain {
 	private final static String[] startSymbols = new String[]{"#","\"","\'","@","("};
 	private final static String[] endSymbols = new String[]{",",".","\"","\'","!",")","*","?"};
 	private int max, min, startMax, startMin;
-	public TweetChain(TweetDictionary dict) {
+	public MarkovChain(TweetDictionary dict) {
 		this.dictionary = dict;
 		this.table = new HashMap<String,Map<String,Integer>>();
 		this.startWords = new HashMap<String,Integer>();
@@ -70,7 +70,7 @@ public class TweetChain {
 			lastWord = nextWord;
 		}
 		
-		return TweetChain.formatResult(tweet);
+		return MarkovChain.formatResult(tweet);
 }
 	private String getStartWord() {
 		Random rand = new Random();
@@ -196,7 +196,7 @@ public class TweetChain {
 			
 		return false;
 	}
-	public static void printTable(TweetChain chain) {
+	public static void printTable(MarkovChain chain) {
 		File file = new File ("chain.csv"); 
 		FileWriter fWriter = null;
 		try {
@@ -236,7 +236,7 @@ public class TweetChain {
 	public static void main(String[] args) {
 		//Nifty tweeters: DylDTM manacurves ColIegeStudent abominable_andy
 		TweetDictionary dict = new TweetDictionary("DylDTM");
-		TweetChain chain = new TweetChain(dict);
+		MarkovChain chain = new MarkovChain(dict);
 		for(int i = 0; i < 1000; i++) {
 			System.out.println(chain.writeTweet() +"\n");
 		}
